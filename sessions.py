@@ -6,7 +6,7 @@ import urllib
 import json
 import requests
 from .defaults import defaults
-from .utils import get_login
+from .utils import get_login, split_kwargs
 
 
 class Session(object):
