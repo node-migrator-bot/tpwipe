@@ -1,0 +1,34 @@
+## generic files to ignore
+*~
+*.lock
+*.DS_Store
+*.swp
+*.out
+
+## python specific
+*.mo
+*.egg-info
+*.egg
+*.EGG
+*.EGG-INFO
+bin
+build
+develop-eggs
+downloads
+eggs
+fake-eggs
+parts
+dist
+__pycache__
+.installed.cfg
+.mr.developer.cfg
+.hg
+.bzr
+.svn
+*.pyc
+*.pyo
+*.pyd 
+*.so
+*.tmp*
+htmlcov
+.coverage
