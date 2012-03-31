@@ -66,9 +66,7 @@ class Session(object):
                                        ).text)['getTokenCountResponse']
 
     def login(self,username=None,password=None, schema=None, form=None):
-        if self.username is None and self.password is None:
-            self.username, self.password = get_login(username=username, 
-                                                     password=password)
+        self.set_cred(username=username,password=password)
         self.token = self.get_token(username=username or self.username, 
                                     password=password or self.password,
                                     form=form         or self.form,
@@ -98,10 +96,8 @@ class Session(object):
         print("It was called with %r and %r as arguments." % (args, kwargs))
 
         local_kwargs, requests_kwargs = split_kwargs(**kwargs)
-        local_kwargs = self.fix_missing_kwargs(**local_kwargs)
-        
-        if method not in defaults:
-            defaults[method] = method  
+        local_kwargs = self.fix_missing(method, **local_kwargs)
+
 
         path = kwargs['url'] if 'url' in kwargs else defaults[method]
         #TODO: fix subpath so we dont get unnecessary slashes
@@ -113,12 +109,23 @@ class Session(object):
 
         return requests.get(url, **requests_kwargs)
     
-    def fix_missing_kwargs(self, **kwargs):
-        if 'token' not in kwargs:
-            kwargs['token'] = self.token or self.login()
+    def fix_missing(self, method, **kwargs):
+                
+        if method not in defaults:
+            defaults[method] = method
+            
+        if method == 'token_count':
+            #gotta be a better way of doing this
+            if( self.set_cred() ):
+                kwargs['username'] = self.username
+                kwargs['password'] = self.password
         else:
-            if kwargs['token'] is None:
-                kwargs['token'] = self.token or self.login()
+            if 'token' not in kwargs:
+                if self.token is not None:
+                    kwargs['token'] = self.token 
+            else:
+                if kwargs['token'] is None:
+                    kwargs['token'] = self.token or self.login()
 
         if 'schema' not in kwargs:
             if self.schema is not None:
@@ -130,9 +137,11 @@ class Session(object):
         
         return kwargs
     
-    def check_cred(self,**kwargs):
+    def set_cred(self,username=None, password=None):
         if self.username is None and self.password is None:
-            self.username, self.password = get_login(kwargs)
+            self.username, self.password = get_login(username=username, 
+                                                     password=password)
+        return self.username is not None and self.password is not None
 
     def __repr__(self):
         return '<tpwipe-client at 0x%x>' % (id(self))
