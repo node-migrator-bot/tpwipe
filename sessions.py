@@ -97,49 +97,42 @@ class Session(object):
         print("The object is %r, the method is %r. " % (self, method))
         print("It was called with %r and %r as arguments." % (args, kwargs))
 
-        requests_kwargs_keys = ['params', 'timeout']
-        requests_kwargs={}
-        local_kwargs={}
+        local_kwargs, requests_kwargs = split_kwargs(**kwargs)
+        local_kwargs = self.fix_missing_kwargs(**local_kwargs)
         
         if method not in defaults:
             defaults[method] = method  
 
-        path = kwargs['url'] if 'url' in kwargs else defaults[method] 
+        path = kwargs['url'] if 'url' in kwargs else defaults[method]
+        #TODO: fix subpath so we dont get unnecessary slashes
         subpath = '/'+'/'.join(args) if len(args) >1 else '/'+''.join(args)
-        params = '?'
-
-        for key in kwargs:
-            if key not in requests_kwargs_keys:
-                local_kwargs[key] = kwargs[key]
-            else:
-                requests_kwargs[key] = kwargs[key]
-
-        if 'token' not in local_kwargs:
-            if self.token is not None:
-                local_kwargs['token'] = self.token  
-            else:
-                # I don't like this way of excluding the creation of a token
-                # on these types...
-                if method not in ['destroy_token','get_token','token_count']:
-                    local_kwargs['token'] = self.login() 
-
-        if 'schema' not in local_kwargs:
-            if self.schema is not None:
-                local_kwargs['schema'] = self.schema  
-
-        if 'form' not in local_kwargs:
-            if self.form is not None:
-                local_kwargs['form'] = self.form  
-
-
-        params+= urllib.parse.urlencode(local_kwargs)
-
-
+        params = '?'+urllib.parse.urlencode(local_kwargs)
         url = path+subpath+params
 
         print("\nRequesting: "+url)
 
         return requests.get(url, **requests_kwargs)
+    
+    def fix_missing_kwargs(self, **kwargs):
+        if 'token' not in kwargs:
+            kwargs['token'] = self.token or self.login()
+        else:
+            if kwargs['token'] is None:
+                kwargs['token'] = self.token or self.login()
+
+        if 'schema' not in kwargs:
+            if self.schema is not None:
+                kwargs['schema'] = self.schema  
+
+        if 'form' not in kwargs:
+            if self.form is not None:
+                kwargs['form'] = self.form
+        
+        return kwargs
+    
+    def check_cred(self,**kwargs):
+        if self.username is None and self.password is None:
+            self.username, self.password = get_login(kwargs)
 
     def __repr__(self):
         return '<tpwipe-client at 0x%x>' % (id(self))
